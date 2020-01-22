@@ -106,9 +106,18 @@ lyv_data_context(const struct lyd_node *node, int options, struct unres_data *un
     }
 
     /* check for (non-)presence of status data in edit-config data */
-    if ((options & (LYD_OPT_EDIT | LYD_OPT_GETCONFIG | LYD_OPT_CONFIG)) && (node->schema->flags & LYS_CONFIG_R)) {
+    /* adding a flag to silently drop config false data when strict flag not set */
+    if ((options & (LYD_OPT_EDIT | LYD_OPT_GETCONFIG | LYD_OPT_CONFIG)) && (options & LYD_OPT_STRICT) && (node->schema->flags & LYS_CONFIG_R)) {
         LOGVAL(ctx, LYE_INELEM, LY_VLOG_LYD, node, node->schema->name);
         return 1;
+    } else if ((options & (LYD_OPT_EDIT | LYD_OPT_GETCONFIG | LYD_OPT_CONFIG)) && (node->schema->flags & LYS_CONFIG_R)) {	
+	if (lyd_unlink((struct lyd_node *)node) != 0) {
+	    /* Seems like i should send an error message */
+	    /* other examples show just returning 1      */
+	    return 1;
+	} else {
+	    lyd_free((struct lyd_node *)node);
+	}
     }
 
     /* check elements order in case of RPC's input and output */
